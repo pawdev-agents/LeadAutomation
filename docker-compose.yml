@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    env_file: .env
+    volumes: ["./data:/app/data"]
+    ports: ["8000:8000"]
+  worker:
+    build: .
+    command: python -m app.worker
+    env_file: .env
+    volumes: ["./data:/app/data"]
