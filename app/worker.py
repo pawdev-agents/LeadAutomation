@@ -1,4 +1,4 @@
-"""Polling worker. Replace `deliver_email` with a provider adapter when mail is connected."""
+﻿"""Polling worker. Replace `deliver_email` with a provider adapter when mail is connected."""
 import logging, time
 from datetime import datetime, timezone
 from sqlalchemy import select
@@ -20,7 +20,7 @@ def tick():
                 job.cancelled_at=now; continue
             # Marking after provider success preserves at-least-once delivery; key prevents duplicate provider sends.
             deliver_email(lead,job.kind); job.sent_at=now
-            if job.kind in ("auto_reply","followup_day_1","followup_day_3","followup_day_7"): lead.last_contacted_at=now
+            if job.kind=="auto_reply" or job.kind.startswith("followup_"): lead.last_contacted_at=now
             db.add(LeadEvent(lead_id=lead.id,event_type="followup_sent",payload={"kind":job.kind,"channel":job.channel}))
         db.commit()
 if __name__=="__main__":

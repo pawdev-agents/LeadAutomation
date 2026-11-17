@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from .models import LeadStatus
 
 class LeadIn(BaseModel):
@@ -18,7 +18,7 @@ class LeadUpdate(BaseModel):
 
 class LeadOut(BaseModel):
     id:int; name:str; email:EmailStr|None; phone:str|None; status:LeadStatus; score:int; owner_id:int|None; source_id:int|None; created_at:datetime
-    class Config: from_attributes=True
+    model_config = ConfigDict(from_attributes=True)
 
 class CaptureIn(LeadIn):
     website: str | None = None  # honeypot

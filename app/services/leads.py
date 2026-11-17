@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta, timezone
+﻿from datetime import datetime, timedelta, timezone
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
-from ..models import Followup, Lead, LeadEvent, LeadSource, LeadStatus, User
+from ..models import Followup, Lead, LeadEvent, LeadSource, LeadStatus, Team, User
+from .team_settings import merged
 
 def score(data):
     points=0
@@ -34,6 +35,7 @@ def create_lead(db:Session, team_id:int, data, actor_id=None):
     lead=Lead(team_id=team_id,source_id=src.id,owner_id=owner_for(db,team_id),name=data.name,email=str(data.email).lower() if data.email else None,phone=data.phone,budget=data.budget,service_type=data.service_type,urgency=data.urgency,score=score(data),utm={k:v for k,v in {"source":data.utm_source,"medium":data.utm_medium,"campaign":data.utm_campaign}.items() if v})
     db.add(lead); db.flush(); event(db,lead.id,"lead_created",{"source":data.source,"score":lead.score},actor_id)
     now=datetime.now(timezone.utc)
-    for kind, when in [("auto_reply",now),("followup_day_1",now+timedelta(days=1)),("followup_day_3",now+timedelta(days=3)),("followup_day_7",now+timedelta(days=7))]:
+    delays=merged(db.get(Team,team_id))["followup_delays_days"]
+    for kind, when in [("auto_reply",now)]+[(f"followup_day_{d}",now+timedelta(days=d)) for d in delays]:
         db.add(Followup(lead_id=lead.id,kind=kind,scheduled_for=when,idempotency_key=f"lead:{lead.id}:{kind}"))
     return lead, False

@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Providers from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "Leadflow | Lead pipeline",
-  description: "Lead generation and booking pipeline",
+  title: "LeadAutomation",
+  description: "Capture, qualify, follow up and book leads.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

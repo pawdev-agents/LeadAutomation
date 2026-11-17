@@ -82,9 +82,16 @@ def book(lead_id:int, data:AppointmentIn,db:Session=Depends(get_db),user:User=De
 @app.post("/api/dev/bootstrap")
 def bootstrap(db:Session=Depends(get_db), _user: User = Depends(current_user)):
     """Authenticated development-only convenience endpoint."""
+    if not settings.enable_dev_bootstrap: raise HTTPException(404, "Not found")
     team=db.scalar(select(Team).where(Team.name=="Demo")) or Team(name="Demo")
     db.add(team);db.flush()
     user=db.scalar(select(User).where(User.email=="admin@example.test"))
     if not user:
         user=User(team_id=team.id,email="admin@example.test",name="Admin",password_hash=hash_password("change-me-now"),role="admin");db.add(user);db.flush()
     db.commit();return {"team_id":team.id,"access_token":create_access_token(user)}
+
+from .routers.settings import router as settings_router
+app.include_router(settings_router, prefix="/api")
+
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(CORSMiddleware, allow_origins=[x.strip() for x in settings.cors_origins.split(",") if x.strip()], allow_methods=["*"], allow_headers=["*"])
