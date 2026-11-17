@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 from ..auth import current_user
 from ..database import get_db
-from ..models import Lead, LeadEvent, LeadStatus, User
+from ..models import Lead, LeadEvent, LeadSource, LeadStatus, Team, User
 from ..schemas import LeadIn, LeadOut, LeadUpdate, NoteIn
 from ..services.leads import create_lead, event, score
+from ..services.team_settings import merged
 router=APIRouter(prefix="/leads",tags=["leads"])
 ALLOWED_TRANSITIONS={
     LeadStatus.new:{LeadStatus.contacted,LeadStatus.qualified,LeadStatus.lost},
@@ -53,9 +54,9 @@ def update(lead_id:int,data:LeadUpdate,db:Session=Depends(get_db),user:User=Depe
     if data.owner_id is not None and not db.scalar(select(User).where(User.id==data.owner_id,User.team_id==user.team_id)):
         raise HTTPException(400,"Owner must belong to this team")
     if data.status and data.status != old and data.status not in ALLOWED_TRANSITIONS[old]:
-        raise HTTPException(422,f"Invalid status transition: {old.value} → {data.status.value}")
+        raise HTTPException(422,f"Invalid status transition: {old.value} â†’ {data.status.value}")
     for k,v in data.model_dump(exclude_unset=True).items():setattr(lead,k,v)
-    if any(k in data.model_fields_set for k in ("budget","service_type","urgency")): lead.score=score(type("D",(),{**lead.__dict__,"source":"manual"})())
+    if any(k in data.model_fields_set for k in ("budget","service_type","urgency")): lead.score=score(type("D",(),{**lead.__dict__,"source":(db.get(LeadSource,lead.source_id).name if lead.source_id else "")})(),merged(db.get(Team,lead.team_id))["scoring_weights"])
     if data.status and old != data.status:event(db,lead.id,"status_changed",{"from":old.value,"to":data.status.value},user.id)
     if data.owner_id is not None and old_owner != data.owner_id:event(db,lead.id,"owner_changed",{"from":old_owner,"to":data.owner_id},user.id)
     db.commit();db.refresh(lead);return lead

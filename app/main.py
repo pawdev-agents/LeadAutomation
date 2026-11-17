@@ -1,3 +1,4 @@
+﻿from .config import settings
 from datetime import timedelta
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -54,7 +55,7 @@ def dashboard(db: Session = Depends(get_db), user: User = Depends(current_user))
         "totals": {"leads": len(leads), "hot_leads": sum(lead.score >= 80 for lead in leads), "booked": by_status["booked"], "conversion_rate": round((by_status["booked"] + by_status["won"]) / len(leads) * 100, 1) if leads else 0},
         "stages": by_status,
         "sources": [{"name": name or "Unknown", "count": count} for name, count in source_rows],
-        "recent": [{"id": lead.id, "name": lead.name, "email": lead.email or lead.phone or "—", "status": lead.status.value, "score": lead.score, "source": next((name or "Unknown" for name, count in source_rows if lead.source_id and db.scalar(select(LeadSource.name).where(LeadSource.id == lead.source_id)) == name), "Unknown"), "created_at": lead.created_at.isoformat()} for lead in leads[:6]],
+        "recent": [{"id": lead.id, "name": lead.name, "email": lead.email or lead.phone or "â€”", "status": lead.status.value, "score": lead.score, "source": next((name or "Unknown" for name, count in source_rows if lead.source_id and db.scalar(select(LeadSource.name).where(LeadSource.id == lead.source_id)) == name), "Unknown"), "created_at": lead.created_at.isoformat()} for lead in leads[:6]],
     }
 
 @app.post("/public/{team_id}/capture")
